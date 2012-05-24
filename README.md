@@ -2,6 +2,7 @@
 
 This application loads [YAML](http://en.wikipedia.org/wiki/Yaml) files into Erlang.  This implementation supports:
 
+* Detailed errors on yaml load failures (line, column, reason)
 * Anchors and aliases
 * [Merge tags](http://yaml.org/type/merge.html)
 * The tag `!atom` for explicitely tagging values as atoms.
@@ -126,7 +127,7 @@ The schema is selected with the `schema` option, for example:
 
 `failsafe` and `json` are defined by the yaml spec.  They are of limited use, however the schema modules can be instructive if you want to write your own.
 
-The `core` schema (defined by the yaml spec) has most of waht you need to make good use of yaml.  The `erlang` schema extends core with [merge](http://yaml.org/type/merge.html) and atom support.
+The `core` schema (defined by the yaml spec) has most of what you need to make good use of yaml.  The `erlang` schema extends core with [merge](http://yaml.org/type/merge.html) and atom support.
 
 To explicitely tag a value as an atom, use the `!atom` tag, for example:
 
