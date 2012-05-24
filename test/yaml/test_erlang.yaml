@@ -1,0 +1,108 @@
+---
+- test file for erlang schema.
+- a
+- b
+- c
+-
+  x: 1
+  y: {abc: 123, 123: abc}
+  z: [4, 5, pqr]
+- !!str dddd
+- "q"
+- 'r'
+- 1
+- "2"
+- '3'
+- ! 1
+- ! "2"
+- ! '3'
+- ! a
+- ! "b"
+- ! 'c'
+- 123
+- !!int 123
+- !!int "123"
+- "123"
+- ! "123"
+#- !!int xyz
+- 123.4
+- !!float 123.4
+- !!float "123.4"
+- "123.4"
+- ! "123.4"
+- true
+- false
+#- True
+#- False
+- "true"
+- "false"
+- ! true
+- ! false
+- !!bool true
+- !!bool false
+- !!bool "true"
+- !!bool "false"
+- null
+#- 
+#- !!null
+- !!null null
+#- !!null boo
+- spookyspoo
+- spooky spoo
+- Null
+- NULL
+- ~
+- nulla
+- ints:
+    - 123
+    - 0x123
+    - 0o123
+  floats:
+    - 3.14159
+    - 3.4e+4
+- &CENTER { x: 1, y: 2 }
+- &LEFT { x: 0, y: 2 }
+- &BIG { r: 10 }
+- &SMALL { r: 1 }
+
+# All the following maps are equal:
+
+- # Explicit keys
+  x: 1
+  y: 2
+  r: 10
+  label: center/big
+
+- # Merge one map
+  << : *CENTER
+  r: 10
+  label: center/big
+
+- # Merge multiple maps
+  << : [ *CENTER, *BIG ]
+  label: center/big
+
+- # Override
+  << : [ *BIG, *LEFT, *SMALL ]
+  x: 1
+  label: center/big
+
+# merge error check
+#-
+#  << : [not, a, mapsequence]
+#  p : 123
+
+- "not an atom"
+- not an atom
+- 'an atom'
+- !atom explicit atom
+- an_atom
+- anatom
+- aNA_t@OM@_
+- Not_an_atom
+- Notanatom"
+- "not_an_atom"
+- 123
+- 14.3
+
+

@@ -1,0 +1,21 @@
+@author Daniel Goertzen <daniel.goertzen@gmail.com>
+@copyright 2012 Daniel Goertzen
+%@license See file /LICENSE
+
+@doc 
+
+This application loads YAML files into Erlang. This implementation supports:
+
+```
+- Anchors and aliases
+- Merge tags
+- The tag !atom for explicitely tagging values as atoms.
+- An implicit_atoms mode to interpret values that look atom-ish as atoms.
+- Customizable schemas via callback modules.
+- This application embeds the C yaml parser "libyaml" which is compiled as a NIF.
+'''
+
+The public interface is through the {@link yaml} module.
+
+New schemas may be implemented through the yaml_schema behaviour which is
+documented in {@link yaml_schema_failsafe}.

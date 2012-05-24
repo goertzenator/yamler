@@ -1,0 +1,11 @@
+.eunit/
+.project
+.settings/
+*.o
+ebin/
+priv/
+
+doc/edoc-info
+doc/*.png
+doc/*.html
+doc/*.css

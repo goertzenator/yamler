@@ -1,0 +1,21 @@
+---
+- test file for failsafe schema, only strings are accepted.
+- a
+- b
+- c
+-
+  x: 1
+  y: {abc: 123, 123: abc}
+  z: [4, 5, pqr]
+- !!str dddd
+- "q"
+- 'r'
+- 1
+- "2"
+- '3'
+- ! 1
+- ! "2"
+- ! '3'
+- ! a
+- ! "b"
+- ! 'c'

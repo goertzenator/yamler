@@ -1,0 +1,62 @@
+---
+- test file for core schema.
+- a
+- b
+- c
+-
+  x: 1
+  y: {abc: 123, 123: abc}
+  z: [4, 5, pqr]
+- !!str dddd
+- "q"
+- 'r'
+- 1
+- "2"
+- '3'
+- ! 1
+- ! "2"
+- ! '3'
+- ! a
+- ! "b"
+- ! 'c'
+- 123
+- !!int 123
+- !!int "123"
+- "123"
+- ! "123"
+#- !!int xyz
+- 123.4
+- !!float 123.4
+- !!float "123.4"
+- "123.4"
+- ! "123.4"
+- true
+- false
+#- True
+#- False
+- "true"
+- "false"
+- ! true
+- ! false
+- !!bool true
+- !!bool false
+- !!bool "true"
+- !!bool "false"
+- null
+#- 
+#- !!null
+- !!null null
+#- !!null boo
+- spookyspoo
+- spooky spoo
+- Null
+- NULL
+- ~
+- nulla
+- ints:
+    - 123
+    - 0x123
+    - 0o123
+  floats:
+    - 3.14159
+    - 3.4e+4
