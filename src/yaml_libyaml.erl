@@ -118,7 +118,7 @@
         
 
 init() ->
-	PrivDir = code:priv_dir(yaml),
+	PrivDir = code:priv_dir(goyaml),
 	Lib = filename:join([PrivDir, "libyaml"]),
 	ok = erlang:load_nif(Lib, 0).
 
