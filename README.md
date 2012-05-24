@@ -82,7 +82,7 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
 ### Download
 Download the code...
 
-	$ git clone git@github.com:goertzenator/yaml.git
+	$ git clone git://github.com/goertzenator/yaml.git
 
 ### Compile
 Build the source and documentation and run tests with...
