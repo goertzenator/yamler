@@ -1,4 +1,4 @@
-# goyaml, an Erlang YAML Loader
+# yamler, an Erlang YAML Loader
 
 This application loads [YAML](http://en.wikipedia.org/wiki/Yaml) files into Erlang.  This implementation supports:
 
@@ -83,12 +83,12 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
 ### Download
 Download the code...
 
-	$ git clone git://github.com/goertzenator/goyaml.git
+	$ git clone git://github.com/goertzenator/yamler.git
 
 ### Compile
 Build the source and documentation and run tests with...
 
-	$ cd goyaml
+	$ cd yamler
 	$ rebar compile doc eunit
 
 The NIF module spews a few warnings.  This is okay.

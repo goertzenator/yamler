@@ -1,6 +1,6 @@
-{application, goyaml,
+{application, yamler,
  [
-  {description, ""},
+  {description, "yaml loader"},
   {vsn, "1"},
   {registered, []},
   {applications, [
