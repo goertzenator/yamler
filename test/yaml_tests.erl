@@ -26,14 +26,14 @@ pairs() -> [
 yaml_filename(File) ->
 	filename:join(
 	  [
-	   code:lib_dir(yaml, test),
+	   code:lib_dir(yamler, test),
 	   "yaml",
 	   File++".yaml"]).
 
 output_term_filename(File) ->
 	filename:join(
 	  [
-	   code:lib_dir(yaml, test),
+	   code:lib_dir(yamler, test),
 	   "outputs",
 	   File++".term"]).	
 
