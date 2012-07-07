@@ -9,6 +9,7 @@
 #include <yaml.h>
 
 #define ATOM(s)         enif_make_atom(env, s)
+#define BOOL(v)         ATOM(v ? "true" : "false")
 #define INT(n)          enif_make_int(env, n)
 #define ULONG(ln)       enif_make_ulong(env, ln)
 #define TUPLE2(x, y)    enif_make_tuple2(env, x, y)
@@ -42,7 +43,7 @@ static const char *event_types[] = {
 
 
 static inline ERL_NIF_TERM
-mem_to_binary(ErlNifEnv *env, const unsigned char *cstr, size_t len)
+mem_to_binary(ErlNifEnv *env, const unsigned char *cstr, const size_t len)
 {
     unsigned char *bin;
     ERL_NIF_TERM term;
@@ -61,7 +62,6 @@ mem_to_binary(ErlNifEnv *env, const unsigned char *cstr, size_t len)
 static inline ERL_NIF_TERM
 cstr_to_binary(ErlNifEnv *env, const unsigned char *cstr)
 {
-
     if (!cstr)
         return ATOM("null");
     else
@@ -69,16 +69,8 @@ cstr_to_binary(ErlNifEnv *env, const unsigned char *cstr)
 }
 
 
-
-static inline
-ERL_NIF_TERM bool_to_term(ErlNifEnv *env, int value)
-{
-    return ATOM(value ? "true" : "false");
-}
-
-
 static ERL_NIF_TERM
-version_directive_to_term(ErlNifEnv *env, yaml_version_directive_t *version)
+version_directive_to_term(ErlNifEnv *env, const yaml_version_directive_t *version)
 {
     if (!version)
         return ATOM("null");
@@ -94,7 +86,8 @@ tag_directive_to_term(ErlNifEnv *env, yaml_tag_directive_t *tag)
                   cstr_to_binary(env, tag->prefix));
 }
 
-static ERL_NIF_TERM mark_to_term(ErlNifEnv *env, yaml_mark_t *mark)
+static inline ERL_NIF_TERM
+mark_to_term(ErlNifEnv *env, const yaml_mark_t *mark)
 {
     if (!mark)
         return ATOM("null");
@@ -103,36 +96,32 @@ static ERL_NIF_TERM mark_to_term(ErlNifEnv *env, yaml_mark_t *mark)
 }
 
 
-static ERL_NIF_TERM event_to_term(ErlNifEnv *env, yaml_event_t *event)
+static ERL_NIF_TERM event_to_term(ErlNifEnv *env, const yaml_event_t *event)
 {
-    yaml_event_type_t type = event->type;
+    const yaml_event_type_t type = event->type;
     ERL_NIF_TERM term;
-    ERL_NIF_TERM tail;
-
-    // for iteration
-    yaml_tag_directive_t *tag_directive;
 
     switch (type) {
     case YAML_STREAM_START_EVENT:
         term = ENUM(encodings, event->data.stream_start.encoding);
         break;
     case YAML_DOCUMENT_START_EVENT:
-        // form list of directives
-        tail = enif_make_list(env, 0);
+        term = enif_make_list(env, 0);
 
         // iterate backwards so list ends up in right order
-        tag_directive = event->data.document_start.tag_directives.end;
-        while (event->data.document_start.tag_directives.start != tag_directive) {
-            tail = enif_make_list_cell(env, tag_directive_to_term(env, tag_directive), tail);
-            tag_directive--;
+        for (yaml_tag_directive_t *tag_directive = event->data.document_start.tag_directives.end;
+             event->data.document_start.tag_directives.start != tag_directive;
+             tag_directive--) {
+            term = enif_make_list_cell(
+                env, tag_directive_to_term(env, tag_directive), term);
         }
 
         term = TUPLE3(version_directive_to_term(env, event->data.document_start.version_directive),
-                      tail,
-                      bool_to_term(env, event->data.document_start.implicit));
+                      term,
+                      BOOL(event->data.document_start.implicit));
         break;
     case YAML_DOCUMENT_END_EVENT:
-        term = bool_to_term(env, event->data.document_end.implicit);
+        term = BOOL(event->data.document_end.implicit);
         break;
     case YAML_ALIAS_EVENT:
         term = cstr_to_binary(env, event->data.alias.anchor);
@@ -143,8 +132,8 @@ static ERL_NIF_TERM event_to_term(ErlNifEnv *env, yaml_event_t *event)
             cstr_to_binary(env, event->data.scalar.tag),
             mem_to_binary(env, event->data.scalar.value, event->data.scalar.length),
             /* FIXME(Sergei): why is this commented out?
-               bool_to_term(env, event->data.scalar.plain_implicit),
-               bool_to_term(env, event->data.scalar.quoted_implicit), */
+               BOOL(event->data.scalar.plain_implicit),
+               BOOL(event->data.scalar.quoted_implicit), */
             ENUM(scalar_styles, event->data.scalar.style));
         break;
     case YAML_SEQUENCE_START_EVENT:
@@ -152,7 +141,7 @@ static ERL_NIF_TERM event_to_term(ErlNifEnv *env, yaml_event_t *event)
             cstr_to_binary(env, event->data.sequence_start.anchor),
             cstr_to_binary(env, event->data.sequence_start.tag),
             /* FIXME(Sergei): why is this commented out?
-              bool_to_term(env, event->data.sequence_start.implicit), */
+              BOOL(event->data.sequence_start.implicit), */
             ENUM(sequence_styles, event->data.sequence_start.style));
         break;
     case YAML_MAPPING_START_EVENT:
@@ -160,7 +149,7 @@ static ERL_NIF_TERM event_to_term(ErlNifEnv *env, yaml_event_t *event)
             cstr_to_binary(env, event->data.mapping_start.anchor),
             cstr_to_binary(env, event->data.mapping_start.tag),
             /* FIXME(Sergei): same for this.
-               bool_to_term(env, event->data.mapping_start.implicit), */
+               BOOL(event->data.mapping_start.implicit), */
             ENUM(mapping_styles, event->data.mapping_start.style));
         break;
     default:
@@ -208,6 +197,7 @@ binary_to_libyaml_event_stream_rev(ErlNifEnv* env,
     goto parser_done;
 
 parser_error:
+    /* FIXME(Sergei): return tuples instead? */
     memset(msg, 0, sizeof(msg));
 
     error = parser.error;
