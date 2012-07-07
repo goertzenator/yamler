@@ -15,7 +15,8 @@
 #define TUPLE2(x, y)    enif_make_tuple2(env, x, y)
 #define TUPLE3(x, y, z) enif_make_tuple3(env, x, y, z)
 #define TUPLE4(x, y, z, a) enif_make_tuple4(env, x, y, z, a)
-
+#define BINARY(s)       (!s ? ATOM("null") : MEMORY(s, strlen((const char *) s)))
+#define MEMORY(s, len)  enif_wrap_binary(env, s, len)
 #define ENUM(table, value) ATOM(table[value])
 
 #define UNUSED  __attribute__((unused))
@@ -43,7 +44,7 @@ static const char *event_types[] = {
 
 
 static inline ERL_NIF_TERM
-mem_to_binary(ErlNifEnv *env, const unsigned char *cstr, const size_t len)
+enif_wrap_binary(ErlNifEnv *env, const unsigned char *cstr, const size_t len)
 {
     unsigned char *bin;
     ERL_NIF_TERM term;
@@ -56,16 +57,6 @@ mem_to_binary(ErlNifEnv *env, const unsigned char *cstr, const size_t len)
     }
 
     return term;
-}
-
-
-static inline ERL_NIF_TERM
-cstr_to_binary(ErlNifEnv *env, const unsigned char *cstr)
-{
-    if (!cstr)
-        return ATOM("null");
-    else
-        return mem_to_binary(env, cstr, strlen((const char *) cstr));
 }
 
 
@@ -82,8 +73,8 @@ version_directive_to_term(ErlNifEnv *env, const yaml_version_directive_t *versio
 static inline ERL_NIF_TERM
 tag_directive_to_term(ErlNifEnv *env, yaml_tag_directive_t *tag)
 {
-    return TUPLE2(cstr_to_binary(env, tag->handle),
-                  cstr_to_binary(env, tag->prefix));
+    return TUPLE2(BINARY(tag->handle),
+                  BINARY(tag->prefix));
 }
 
 static inline ERL_NIF_TERM
@@ -124,13 +115,13 @@ static ERL_NIF_TERM event_to_term(ErlNifEnv *env, const yaml_event_t *event)
         term = BOOL(event->data.document_end.implicit);
         break;
     case YAML_ALIAS_EVENT:
-        term = cstr_to_binary(env, event->data.alias.anchor);
+        term = BINARY(event->data.alias.anchor);
         break;
     case YAML_SCALAR_EVENT:
         term = TUPLE4(
-            cstr_to_binary(env, event->data.scalar.anchor),
-            cstr_to_binary(env, event->data.scalar.tag),
-            mem_to_binary(env, event->data.scalar.value, event->data.scalar.length),
+            BINARY(event->data.scalar.anchor),
+            BINARY(event->data.scalar.tag),
+            MEMORY(event->data.scalar.value, event->data.scalar.length),
             /* FIXME(Sergei): why is this commented out?
                BOOL(event->data.scalar.plain_implicit),
                BOOL(event->data.scalar.quoted_implicit), */
@@ -138,16 +129,16 @@ static ERL_NIF_TERM event_to_term(ErlNifEnv *env, const yaml_event_t *event)
         break;
     case YAML_SEQUENCE_START_EVENT:
         term = TUPLE3(
-            cstr_to_binary(env, event->data.sequence_start.anchor),
-            cstr_to_binary(env, event->data.sequence_start.tag),
+            BINARY(event->data.sequence_start.anchor),
+            BINARY(event->data.sequence_start.tag),
             /* FIXME(Sergei): why is this commented out?
               BOOL(event->data.sequence_start.implicit), */
             ENUM(sequence_styles, event->data.sequence_start.style));
         break;
     case YAML_MAPPING_START_EVENT:
         term = TUPLE3(
-            cstr_to_binary(env, event->data.mapping_start.anchor),
-            cstr_to_binary(env, event->data.mapping_start.tag),
+            BINARY(event->data.mapping_start.anchor),
+            BINARY(event->data.mapping_start.tag),
             /* FIXME(Sergei): same for this.
                BOOL(event->data.mapping_start.implicit), */
             ENUM(mapping_styles, event->data.mapping_start.style));
@@ -169,14 +160,13 @@ binary_to_libyaml_event_stream_rev(ErlNifEnv* env,
                                    int argc UNUSED,
                                    const ERL_NIF_TERM argv[])
 {
-    ErlNifBinary bin;
     ERL_NIF_TERM term = enif_make_list(env, 0);
     ERL_NIF_TERM status;
+    ErlNifBinary bin;
     yaml_parser_t parser;
     yaml_event_t event;
-    yaml_error_type_t error;
     int done = 0;
-    char msg[200];
+    char msg[256] = {0};
 
     if (!enif_inspect_binary(env, argv[0], &bin))
         return enif_make_badarg(env);
@@ -197,51 +187,47 @@ binary_to_libyaml_event_stream_rev(ErlNifEnv* env,
     goto parser_done;
 
 parser_error:
-    /* FIXME(Sergei): return tuples instead? */
-    memset(msg, 0, sizeof(msg));
-
-    error = parser.error;
-    switch (error) {
+    switch (parser.error) {
     case YAML_MEMORY_ERROR:
-        snprintf(msg, sizeof(msg), "Memory error: Not enough memory for parsing\n");
+        snprintf(msg, sizeof(msg), "Memory error: Not enough memory for parsing");
         break;
     case YAML_READER_ERROR:
-        if (parser.problem_value != -1) {
-            snprintf(msg, sizeof(msg), "Reader error: %s: #%X at %zu\n", parser.problem,
+        if (parser.problem_value != -1)
+            snprintf(msg, sizeof(msg), "Reader error: %s: #%X at %zu",
+                     parser.problem,
                      parser.problem_value, parser.problem_offset);
-        }
-        else {
-            fprintf(stderr, "Reader error: %s at %zu\n", parser.problem,
-                    parser.problem_offset);
-        }
+        else
+            snprintf(msg, sizeof(msg), "Reader error: %s at %zu",
+                     parser.problem,
+                     parser.problem_offset);
         break;
     case YAML_SCANNER_ERROR:
-        if (parser.context) {
+        if (parser.context)
             snprintf(msg, sizeof(msg), "Scanner error: %s at line %zu, column %zu\n"
-                     "%s at line %zu, column %zu\n", parser.context,
-                     parser.context_mark.line+1, parser.context_mark.column+1,
-                     parser.problem, parser.problem_mark.line+1,
-                     parser.problem_mark.column+1);
-        }
-        else {
-            snprintf(msg, sizeof(msg), "Scanner error: %s at line %zu, column %zu\n",
-                     parser.problem, parser.problem_mark.line+1,
-                     parser.problem_mark.column+1);
-        }
+                     "%s at line %zu, column %zu",
+                     parser.context,
+                     parser.context_mark.line + 1, parser.context_mark.column + 1,
+                     parser.problem, parser.problem_mark.line + 1,
+                     parser.problem_mark.column + 1);
+        else
+            snprintf(msg, sizeof(msg), "Scanner error: %s at line %zu, column %zu",
+                     parser.problem,
+                     parser.problem_mark.line + 1,
+                     parser.problem_mark.column + 1);
         break;
     case YAML_PARSER_ERROR:
-        if (parser.context) {
+        if (parser.context)
             snprintf(msg, sizeof(msg), "Parser error: %s at line %zu, column %zu\n"
-                     "%s at line %zu, column %zu\n", parser.context,
-                     parser.context_mark.line+1, parser.context_mark.column+1,
-                     parser.problem, parser.problem_mark.line+1,
-                     parser.problem_mark.column+1);
-        }
-        else {
-            snprintf(msg, sizeof(msg), "Parser error: %s at line %zu, column %zu\n",
-                     parser.problem, parser.problem_mark.line+1,
-                     parser.problem_mark.column+1);
-        }
+                     "%s at line %zu, column %zu",
+                     parser.context,
+                     parser.context_mark.line + 1, parser.context_mark.column + 1,
+                     parser.problem, parser.problem_mark.line + 1,
+                     parser.problem_mark.column + 1);
+        else
+            snprintf(msg, sizeof(msg), "Parser error: %s at line %zu, column %zu",
+                     parser.problem,
+                     parser.problem_mark.line + 1,
+                     parser.problem_mark.column + 1);
         break;
     case YAML_NO_ERROR:
     case YAML_COMPOSER_ERROR:
@@ -251,9 +237,8 @@ parser_error:
     }
 
     status = ATOM("error");
-    term   = TUPLE2(ENUM(error_types, error),
-                    cstr_to_binary(env, (const unsigned char *) msg));
-
+    term   = TUPLE2(ENUM(error_types, parser.error),
+                    MEMORY((const unsigned char *) msg, strlen(msg)));
     goto parser_done;
 
 parser_done:
