@@ -10,7 +10,7 @@ This application loads [YAML](http://en.wikipedia.org/wiki/Yaml) files into Erla
 * Customizable schemas via callback modules.
 
 This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibYAML)" which is compiled as a NIF.
- 
+
 # Example
 
 ###The yaml file...
@@ -22,28 +22,28 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
 	customer:
 	    given:   Dorothy
 	    family:  Gale
-	
+
 	items:
 	    - part_no:   A4786
 	      descrip:   Water Bucket (Filled)
 	      price:     1.47
 	      quantity:  4
-	
+
 	    - part_no:   E1628
 	      descrip:   High Heeled "Ruby" Slippers
 	      size:      8
 	      price:     100.27
 	      quantity:  1
-	
+
 	bill_to:  &id001
 	    street: |
 	            123 Tornado Alley
 	            Suite 16
 	    city:   East Centerville
 	    state:  KS
-	
+
 	ship_to:  *id001
-	
+
 	specialDelivery:  >
 	    Follow the Yellow Brick
 	    Road to the Emerald City.
@@ -81,24 +81,27 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
 # Installation
 
 ### Download
+
 Download the code...
 
 	$ git clone git://github.com/goertzenator/yamler.git
 
+**Note**: you might also need to install
+[libyaml](http://pyyaml.org/wiki/LibYAML), the underlying C library.
+
 ### Compile
-Build the source and documentation and run tests with...
+
+Build the source and documentation and run tests with ...
 
 	$ cd yamler
 	$ rebar compile doc eunit
-
-The NIF module spews a few warnings.  This is okay.
 
 Play with it..
 
 	$ export ERL_LIBS=$(pwd)
 	$ erl
 	Erlang R15B01 (erts-5.9.1) [source] [64-bit] [smp:3:3] [async-threads:0] [kernel-poll:false]
-	
+
 	Eshell V5.9.1  (abort with ^G)
 	1> yaml:load_file("test/yaml/demo1.yaml").
 	{ok,[[{<<"specialDelivery">>,
@@ -136,7 +139,7 @@ To explicitely tag a value as an atom, use the `!atom` tag, for example:
 
 To turn on implicit atom detection for untagged values, use the erlang schema and pass in the `implicit_atoms` options, for example:
 
-	5> yaml:load_file("test/yaml/demo1.yaml", [implicit_atoms]). 
+	5> yaml:load_file("test/yaml/demo1.yaml", [implicit_atoms]).
 
 The following yaml fragment illustrates which values will be recognized as atoms:
 
@@ -163,5 +166,3 @@ If you are using erlide, I recommend the eclipse yaml editor [yedit](http://code
 
 * This app does not emit yaml.
 * This app may stumble on enormous yaml files because the entire file, event stream, and constructed documents must fit in memory at once.  Also, a scheduler may be stuck in a NIF call for a while when parsing a very large yaml file.
-
-
