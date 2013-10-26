@@ -8,6 +8,7 @@ This application loads [YAML](http://en.wikipedia.org/wiki/Yaml) files into Erla
 * The tag `!atom` for explicitely tagging values as atoms.
 * An `implicit_atoms` mode to interpret values that look atom-ish as atoms.
 * Customizable schemas via callback modules.
+* Mappings returned as native Erlang R17 maps. (passes all unit tests on experimental maps branch, edoc currently broken)
 
 This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibYAML)" which is compiled as a NIF.
  
@@ -15,8 +16,8 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
 
 ###The yaml file...
 
-	# demo1.yaml
-	---
+    # demo1.yaml
+    ---
 	receipt:     Oz-Ware Purchase Invoice
 	date:        2007-08-06
 	customer:
@@ -57,25 +58,25 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
 
 	3> yaml:load_file("test/yaml/demo1.yaml", [implicit_atoms]).
 
-	{ok,[[{customer,[{family,<<"Gale">>},{given,<<"Dorothy">>}]},
-	      {items,[[{descrip,<<"Water Bucket (Filled)">>},
-	               {price,1.47},
-	               {quantity,4},
-	               {part_no,<<"A4786">>}],
-	              [{descrip,<<"High Heeled \"Ruby\" Slippers">>},
-	               {price,100.27},
-	               {size,8},
-	               {quantity,1},
-	               {part_no,<<"E1628">>}]]},
-	      {receipt,<<"Oz-Ware Purchase Invoice">>},
-	      {date,<<"2007-08-06">>},
-	      {specialDelivery,<<"Follow the Yellow Brick Road to the Emerald City. Pay no attention to the ma"...>>},
-	      {ship_to,[{street,<<"123 Tornado Alley\nSuite 16\n">>},
-	                {state,<<"KS">>},
-	                {city,<<"East Centerville">>}]},
-	      {bill_to,[{street,<<"123 Tornado Alley\nSuite 16\n">>},
-	                {state,<<"KS">>},
-	                {city,<<"East Centerville">>}]}]]}
+    {ok,[#{bill_to => #{city => <<"East Centerville">>,
+             state => <<"KS">>,
+             street => <<"123 Tornado Alley\nSuite 16\n">>},
+           customer => #{family => <<"Gale">>,given => <<"Dorothy">>},
+           date => <<"2007-08-06">>,
+           items => [#{descrip => <<"Water Bucket (Filled)">>,
+              part_no => <<"A4786">>,
+              price => 1.47,
+              quantity => 4},
+            #{descrip => <<"High Heeled \"Ruby\" Slippers">>,
+              part_no => <<"E1628">>,
+              price => 100.27,
+              quantity => 1,
+              size => 8}],
+           receipt => <<"Oz-Ware Purchase Invoice">>,
+           ship_to => #{city => <<"East Centerville">>,
+             state => <<"KS">>,
+             street => <<"123 Tornado Alley\nSuite 16\n">>},
+           specialDelivery => <<"Follow the Yellow Brick Road to the Emerald City. Pay no attention to the ma"...>>}]}
 
 
 # Installation
@@ -97,14 +98,12 @@ Play with it..
 
 	$ export ERL_LIBS=$(pwd)
 	$ erl
-	Erlang R15B01 (erts-5.9.1) [source] [64-bit] [smp:3:3] [async-threads:0] [kernel-poll:false]
-	
-	Eshell V5.9.1  (abort with ^G)
-	1> yaml:load_file("test/yaml/demo1.yaml").
-	{ok,[[{<<"specialDelivery">>,
-	       <<"Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man 	behind the cur"...>>},
-	      {<<"items">>, ...
-
+    Erlang R17A (erts-5.11) [source-16b4dc1] [64-bit] [smp:3:3] [async-threads:10] [hipe] [kernel-poll:false]
+    
+    Eshell V5.11  (abort with ^G)
+    1> yaml:load_file("test/yaml/demo1.yaml").
+    {ok,[#{<<"bill_to">> => #{<<"city">> => <<"East Centerville">>,
+             <<"state">> => <<"KS">>, ...
 
 
 # Schemas
@@ -116,7 +115,7 @@ The included schemas are:
 * `yaml_schema_failsafe`
 * `yaml_schema_json`
 * `yaml_schema_core`
-* `yaml_schame_erlang` (default)
+* `yaml_schema_erlang` (default)
 
 The schema is selected with the `schema` option, for example:
 
@@ -158,6 +157,8 @@ See the behavior documenation for yaml_schema and the 4 schemas included in this
 # Tips
 
 If you are using erlide, I recommend the eclipse yaml editor [yedit](http://code.google.com/p/yedit/).
+
+Erlang R17 implements a native map type which is used by yamler to represent yaml mappings.  If you need to use an older Erlang see the git branch `mapping_as_list`.
 
 # Limitations
 
