@@ -85,7 +85,7 @@
 %% @end
 -spec nif_init() -> ok | {error, atom()}.
 nif_init() ->
-    PrivDir = case code:priv_dir(tempo) of
+    PrivDir = case code:priv_dir(yamler) of
                   {error, _} ->
                       EbinDir = filename:dirname(code:which(?MODULE)),
                       AppPath = filename:dirname(EbinDir),
