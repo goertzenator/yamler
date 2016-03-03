@@ -33,8 +33,7 @@
 				events :: [yaml_libyaml:event()],
 				anchors :: dict:dict(),
 				schema :: atom(),
-				schema_state :: term(),
-				sort_mappings :: boolean()
+				schema_state :: term()
 			   }).
 % composer state
 
@@ -54,8 +53,7 @@ compose(Events, Opts) ->
 				   events = Events,
 				   anchors = dict:new(),
 				   schema = Schema,
-				   schema_state = Schema:init(Opts),
-				   sort_mappings = proplists:get_bool(sort_mappings, Opts)
+				   schema_state = Schema:init(Opts)
 				  },
 	catch compose_stream(State).
 
@@ -79,15 +77,15 @@ compose_doc(State0 = #state{events=[{document_start, _,_,_}, {document_end, _,_,
 	State1 = State0#state{events=Rest},
 	{ok, null, State1};
 
-% normal document case    
+% normal document case
 compose_doc(State0 = #state{events=[{document_start, _,_,_} | Rest]}) ->
 	State1 = State0#state{events=Rest},
 	{{_ResolvedTag, ConstructedValue}, State2} = compose_node(State1),
-	
+
 	% remove document_end
 	[{document_end, _,_,_} | Rest2] = State2#state.events,
 	State3 = State2#state{events=Rest2},
-	
+
 	{ok, ConstructedValue, State3};
 
 % stream end case
@@ -96,8 +94,8 @@ compose_doc(State0 = #state{events=[{stream_end, _,_,_}]}) ->
 	{stream_end, State1}.
 
 
--spec compose_node(#state{}) -> {ynode(), #state{}}. 
-% handle scalar    
+-spec compose_node(#state{}) -> {ynode(), #state{}}.
+% handle scalar
 compose_node(State0 = #state{
 							 events=[Head={scalar, {Anchor,Tag,Value,Style},_,_} |Rest],
 							 schema = Schema,
@@ -165,7 +163,7 @@ compose_node(State0 = #state{
 
 
 
--spec compose_sequence([ynode()], #state{}) -> {sequence(), #state{}}. 
+-spec compose_sequence([ynode()], #state{}) -> {sequence(), #state{}}.
 compose_sequence(ConstructedValues, State0 = #state{
 													events=[{sequence_end, _,_,_} |Rest]}) ->
 	State1 = State0#state{events=Rest},
@@ -176,66 +174,49 @@ compose_sequence(ConstructedValues, State0) ->
 	compose_sequence([ConstructedValue|ConstructedValues], State1).
 
 
--spec compose_mapping(#state{}) -> {mapping(), #state{}}. 
-compose_mapping(State) -> compose_mapping(dict:new(), dict:new(), State).
-compose_mapping(Map0, Merge, State0 = #state{
-											 events=[{mapping_end, _,_,_} |Rest]}) ->
+-spec compose_mapping(#state{}) -> {mapping(), #state{}}.
+compose_mapping(State) -> compose_mapping(#{}, #{}, State).
+
+%% Accumulate plain old mapping entries in Map, and merge entries in Merge.
+compose_mapping(Map0, Merge, State0 = #state{events=[{mapping_end, _,_,_} |Rest]}) ->
 	State1 = State0#state{events=Rest},
-	
+
 	% notes from http://yaml.org/type/merge.html
 	% - merged keys do not overwrite any other keys
 	% - latter merged keys do not overwrite earlier merged keys
-	Map1 = dict:merge(fun(_K, V1, _V2) -> V1 end, Map0, Merge),
-	List0 = dict:to_list(Map1),
-	List1 = case State0#state.sort_mappings of
-				true -> lists:keysort(1,List0);
-				_ -> List0
-			end,
-	{ List1, State1 };
+	{ maps:merge(Merge, Map0),  % keys in Map take precendence over Merge
+	  State1 };
 
 compose_mapping(Map0, Merge0, State0) ->
 	{{ KTag, Key}, State1} = compose_node(State0),
 	{{ VTag, Value}, State2} = compose_node(State1),
-	
+
 	case {KTag, VTag} of
+		%% add single mapping to merge map
 		{'tag:yaml.org,2002:merge', 'tag:yaml.org,2002:map'} ->
-			Merge1 = case catch merge_list_unique(Value, Merge0) of
-						 badarg -> merge_error(hd(State1#state.events));
-						 Else -> Else
-					 end,
+			Merge1 = maps:merge(Value, Merge0),
 			compose_mapping(Map0, Merge1, State2);
+
+		%% add list of mappings to merge map
 		{'tag:yaml.org,2002:merge', 'tag:yaml.org,2002:seq'} ->
-			Merge1 = case catch lists:foldl(fun merge_list_unique/2, Merge0, Value) of
-						 badarg -> merge_error(hd(State1#state.events));
-						 Else -> Else
+			Merge1 = case catch lists:foldl(fun maps:merge/2, Merge0, Value) of
+						 badmap ->
+							 throw_error("Merge sequence must contain only mappings", hd(State1#state.events));
+						 Else when is_map(Else) ->
+							 Else
 					 end,
 			compose_mapping(Map0, Merge1, State2);
+
 		{'tag:yaml.org,2002:merge', _} ->
-			merge_error(hd(State1#state.events));
+			throw_error("Merge value must be mapping or sequence of mappings", hd(State1#state.events));
+
 		_ ->
-			Map1 = case dict:is_key(Key, Map0) of
-					   false -> dict:store(Key,Value,Map0);
+			Map1 = case maps:is_key(Key, Map0) of
+					   false -> maps:put(Key, Value, Map0);
 					   true  -> throw_error("Duplicate key", hd(State0#state.events))
 				   end,
 			compose_mapping(Map1, Merge0, State2)
 	end.
-
-merge_error(Event) ->
-	throw_error("Merge value must be mapping or sequence of mappings", Event).
-
-% merge list of items into dict only if key is not already present
-merge_list_unique(List, Dict) when is_list(List) ->
-	lists:foldl(
-	  fun({K,V}, D) ->
-			  case dict:is_key(K, D) of
-				  false -> dict:store(K,V,D);
-				  true  -> D
-			  end;
-		 (_,_D) ->
-			  throw(badarg)
-	  end,
-	  Dict, List);
-merge_list_unique(_List, _Dict) -> throw(badarg).
 
 -spec maybe_anchor(Anchor, Value, Event, State) -> #state{}
 when
@@ -243,7 +224,7 @@ when
   Value :: term(),
   Event :: yaml_libyaml:event(),
   State :: #state{}.
-														  
+
 maybe_anchor(null, _Value, _Event, State0) -> State0;
 maybe_anchor(Anchor, Value, Event, State0=#state{anchors=Anchors0}) ->
 	case dict:is_key(Anchor, Anchors0) of

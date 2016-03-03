@@ -13,13 +13,13 @@
 
 pairs() -> [
 			% in, out, Opts
-			{"test_failsafe", "test_failsafe", [{schema, yaml_schema_failsafe}, sort_mappings]},
-			{"test_json", "test_json", [{schema, yaml_schema_json}, sort_mappings]},
-			{"test_core", "test_core", [{schema, yaml_schema_core}, sort_mappings]},
-			{"test_erlang", "test_erlang1", [{schema, yaml_schema_erlang}, sort_mappings]},
-			{"test_erlang", "test_erlang2", [{schema, yaml_schema_erlang}, implicit_atoms, sort_mappings]},
-			{"test_erlang", "test_erlang1", [sort_mappings]},
-			{"test_erlang", "test_erlang2", [implicit_atoms, sort_mappings]}
+			{"test_failsafe", "test_failsafe", [{schema, yaml_schema_failsafe}]},
+			{"test_json", "test_json", [{schema, yaml_schema_json}]},
+			{"test_core", "test_core", [{schema, yaml_schema_core}]},
+			{"test_erlang", "test_erlang1", [{schema, yaml_schema_erlang}]},
+			{"test_erlang", "test_erlang2", [{schema, yaml_schema_erlang}, implicit_atoms]},
+			{"test_erlang", "test_erlang1", []},
+			{"test_erlang", "test_erlang2", [implicit_atoms]}
 		   ].
 
 
@@ -35,7 +35,7 @@ output_term_filename(File) ->
 	  [
 	   code:lib_dir(yamler, test),
 	   "outputs",
-	   File++".term"]).	
+	   File++".term"]).
 
 generate_results() ->
 	lists:foreach(
@@ -50,16 +50,16 @@ generate_results() ->
 pairs_test_() ->
 	io:format("processing pairs ~p~n", [pairs()]),
 	lists:map(fun({In, Out, Opts}) ->
-
+					  %?debugFmt("~p\n\n", [yaml:load_file(yaml_filename(In), Opts)]),
 					  ?_assertEqual(
-					  
+
 					  begin
 					  	{ok,[Term]} = file:consult(output_term_filename(Out)),
 						Term
 					  end,
-					  	
+
 					  yaml:load_file(yaml_filename(In), Opts)
-					  
+
 					  )
 			  end,
 			  pairs()).
