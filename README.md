@@ -14,7 +14,7 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
  
 # Example
 
-###The yaml file...
+### The yaml file...
 
     # demo1.yaml
     ---
@@ -54,7 +54,7 @@ This application embeds the C yaml parser "[libyaml](http://pyyaml.org/wiki/LibY
 
 
 
-###Load command...
+### Load command...
 
 	3> yaml:load_file("test/yaml/demo1.yaml", [implicit_atoms]).
 
